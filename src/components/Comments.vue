@@ -1,17 +1,18 @@
 <template lang="pug">
-  div.qcw-comments
+  div.qcw-comments(@scroll="onScroll($event)" ref="parent")
     div.inner
       div.qcw-load-comment-indicator(v-if="core.isLoading")
         loader()
 
       ul(v-if="core.selected")
-        li(class="qcw-load-more qcw-load-more-btn" @click="loadMore" v-if="core.selected.comments.length > 0 && core.selected.comments[0].before_id > 0") 
+        li(class="qcw-load-more qcw-load-more-btn" @click="loadMore" v-if="core.selected.comments.length > 0 && core.selected.comments[0].before_id > 0")
           icon(name="ic-load" class="ic-load-more__state" v-if="isLoadingMore")
           span Load More
         li(class="qcw-load-more qcw-top-page" v-else)
-          span You've reached first page 
+          span You've reached first page
         li(v-for="(comment, index) in core.selected.comments" :key="comment.id")
           comment(
+            ref="comments"
             :comment="comment"
             :comment-before="(index-1 < 0) ? null : core.selected.comments[index-1]"
             :comment-after="(index+1 <= core.selected.comments.length-1) ? core.selected.comments[index+1] : null"
@@ -22,7 +23,7 @@
             :showAvatar="core.options.avatar"
           )
         //- com`ponent for uploader progress
-    
+
 </template>
 
 <script>
@@ -41,6 +42,7 @@ export default {
     return {
       isLoadingMore: false,
       commentLength: 0,
+      scrollTimeoutId: -1,
     };
   },
   updated() {
@@ -55,24 +57,61 @@ export default {
     }
   },
   mounted() {
-    const self = this;
-    // attach scroll listener
-    const scrollContainer = document.querySelector('.qcw-comments');
-    if (scrollContainer != null) {
-      scrollContainer.onscroll = () => {
-        const scrollHeight =  scrollContainer.scrollHeight;
-        const clientHeight = scrollContainer.clientHeight;
-        const scrollTop = scrollContainer.scrollTop;
-        const scrollTreshold = 2.3 * clientHeight;
-        if (scrollHeight - scrollTop > scrollTreshold) {
-          self.core.UI.isReading = true;
-        } else {
-          self.core.UI.isReading = false;
-        }
-      };
-    }
   },
   methods: {
+    handleReadingState(event) {
+      const scrollContainer = event.target;
+      const scrollHeight = scrollContainer.scrollHeight;
+      const clientHeight = scrollContainer.clientHeight;
+      const scrollTop = scrollContainer.scrollTop;
+      const scrollTreshold = 2.3 * clientHeight;
+      if (scrollHeight - scrollTop > scrollTreshold) {
+        this.core.UI.isReading = true;
+      } else {
+        this.core.UI.isReading = false;
+      }
+    },
+    getOffset($el) {
+      const rect = $el.getBoundingClientRect();
+      return {
+        top: rect.top + document.body.scrollTop,
+        left: rect.left + document.body.scrollLeft,
+      };
+    },
+    getPosition($el) {
+      return {
+        top: $el.offsetTop,
+        left: $el.offsetLeft,
+      };
+    },
+    isInsideViewport($el) {
+      const y = this.getPosition($el).top;
+      const parent = this.$refs.parent;
+      const parentY = parent.scrollTop;
+      return y > parentY && y < parentY + parent.offsetHeight;
+    },
+    computeCommentScroll($comment) {
+      const isInsideViewport = this.isInsideViewport($comment.$el);
+      const isChannel = $comment.comment.isChannel;
+      // if (!isInsideViewport) return;
+      // if (isChannel) return;
+      // if ($comment.comment.isRead) return;
+      if (!isInsideViewport || isChannel || $comment.comment.isRead) return;
+      console.log('comment', $comment.comment.message, isChannel, isInsideViewport);
+    },
+    onScroll(event) {
+      if (this.scrollTimeoutId !== -1) {
+        window.clearTimeout(this.scrollTimeoutId);
+        this.scrollTimeoutId = -1;
+      }
+      this.scrollTimeoutId = window.setTimeout(() => {
+        this.handleReadingState(event);
+        this.$refs.comments
+          .forEach(($comment) => {
+            this.computeCommentScroll($comment);
+          });
+      }, 150);
+    },
     loadMore() {
       this.isLoadingMore = true;
       this.core.loadMore(this.core.selected.comments[0].id).then(() => {
@@ -93,7 +132,7 @@ export default {
     border-radius 2px
     text-align center
     i
-      display block 
+      display block
       margin 0px auto 8px auto
       .qc-icon
         fill $green
@@ -139,10 +178,10 @@ export default {
       width: 12px;
       animation spin 1s ease-in-out infinite
 
-  .inner 
+  .inner
     position relative
     padding-top 1px
-  
+
   .qcw-load-comment-indicator
     position absolute
     width 100%
@@ -166,7 +205,7 @@ export default {
     &::-webkit-scrollbar-thumb
       border-radius: 4px;
       background-color: #e0e0e0;
-  
+
   .qcw-comments ul
     position relative
     list-style none
@@ -213,7 +252,7 @@ export default {
       background-color $red
       .qc-icon
         fill $white
-    
+
   i.reply-btn
     right -32px
     & svg.qc-icon
@@ -241,7 +280,7 @@ export default {
         display none
       .delete-btn
         display inline-block
-  
+
   .qcw-comment__state
     animation:fadeInDown 0.3s ease-out;
 
@@ -253,7 +292,7 @@ export default {
       justify-content flex-end
       .qcw-avatar
         display none
-  
+
   .qcw-comment-date
     text-align center
     font-weight bold
@@ -273,7 +312,7 @@ export default {
   .qcw-comment
     display flex
     flex 0 auto
-  
+
   .qcw-avatar
     flex 0 0 36px
     img
@@ -283,7 +322,7 @@ export default {
     .comment--me &
       order 2
       text-align right
-      
+
   .qcw-comment__info
     padding-bottom 7px
     margin-bottom 7px
@@ -300,7 +339,7 @@ export default {
     color $darkGrey;
     position absolute
     top 16px
-    
+
     svg.qc-icon
         margin-top 3px
 
@@ -364,7 +403,7 @@ export default {
     &.failed--last
       margin-bottom 24px
       margin-top -27px
-  
+
   .qcw-comment--system-event
     text-align: center;
     padding: 5px 20px;
@@ -426,7 +465,7 @@ export default {
       box-shadow 0 7px 16px rgba(199,199,199,.25)
       left auto
       right -8px
-    &.card 
+    &.card
       max-width 210px !important
 
   @media only screen and (min-width: 640px)
@@ -442,12 +481,12 @@ export default {
     margin-bottom 24px
 
   .deleted
-    .qcw-comment__content 
+    .qcw-comment__content
       font-size 13px
       color $red
   .comment-text
     width 100%
-    .qcw-comment__content 
+    .qcw-comment__content
       margin 0
       word-break break-word
       word-wrap break-word

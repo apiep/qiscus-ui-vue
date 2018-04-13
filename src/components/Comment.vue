@@ -1,7 +1,8 @@
 <template lang="pug">
-  div(:class="{'parent--container':isParent, 'my--container': isMe, 'qcw-group': isGroupRoom, 'contain-date': showDate, 'deleted': isDeleted}")
+  div(:class="{'parent--container':isParent, 'my--container': isMe, 'qcw-group': isGroupRoom, 'contain-date': showDate, 'deleted': isDeleted}"
+    @scroll="onScroll($event)")
     div(class="qcw-comment-container" :id="comment.id" :class="commentClass")
-      div(v-if="showDate" class="qcw-comment-date" :class="{'extra-margin': addExtraMargin}") 
+      div(v-if="showDate" class="qcw-comment-date" :class="{'extra-margin': addExtraMargin}")
         div {{ dateToday }}
       div(v-if="comment.type == 'system_event'" class="qcw-comment--system-event")
         comment-custom(v-if="core.customTemplate && haveTemplate(comment)" :data="comment")
@@ -12,10 +13,10 @@
         :class="{ 'comment--me': comment.username_real == userData.email, 'comment--parent': isParent, 'comment--mid': isMid, 'comment--last': isLast }"
       )
         avatar(:src="comment.avatar" :class="{'qcw-avatar--hide': !isParent}")
-        div(class="qcw-comment__message" 
+        div(class="qcw-comment__message"
           :style="{messageStyle:!isCustomBuble}"
           :class="{'extra-margin carousel': comment.type === 'carousel','card':comment.type === 'card','hover-effect':!isDeleted && !isCustomBuble}")
-            
+
           //- Comment User
           //- span(class="qcw-comment__username" v-if="isParent && isGroupRoom && !isMe") {{comment.username_as}}
           span(class="qcw-comment__username" v-if="isParent && !isMe") {{comment.username_as}}
@@ -24,11 +25,11 @@
           i(@click="replyHandler(comment)" class="reply-btn" :class="{'reply-btn--me': isMe}" v-if="!isDeleted")
             icon(name="ic-quote" v-if="isMe")
             icon(name="ic-reply" v-else)
-          
+
           //- delete button
           i(class="delete-btn" @click="confirmDeleteComment(comment)" v-if="isMe && !isDeleted")
             icon(name="ic-close")
-          
+
           //- CommentType: "contact_person"
           div(v-if="comment.type == 'contact_person'" class="qcw-comment--contact")
             i
@@ -52,7 +53,7 @@
             :comment="comment"
             :on-click-image="onClickImage"
             :callback="onupdate")
-          
+
           //- CommentType: "CAROUSEL"
           comment-carousel(:cards="comment.payload.cards" :mode="this.core.mode" v-if="comment.type === 'carousel'")
 
@@ -68,7 +69,7 @@
           comment-card(:data="comment.payload" v-if="comment.type==='card'")
 
           //- CommentType: "CARD"
-          div(v-if="comment.type=='button_postback_response'" class="comment-text") 
+          div(v-if="comment.type=='button_postback_response'" class="comment-text")
             comment-render(:text="comment.message" v-if="!comment.isAttachment(comment.message)")
 
           //- CommentType: "ACCOUNT_LINKING"
@@ -77,7 +78,7 @@
             div(class="qcw-comment__buttons")
               div(class="action_buttons")
                 button(@click="openAccountBox") {{ comment.payload.params.button_text }} &rang;
-          
+
           //- CommentType: "TEXT"
           div(class="comment-text" v-if="comment.type == 'text' || comment.type == 'reply'")
             image-loader(v-if="comment.isAttachment(comment.message) && comment.type != 'reply'"
@@ -92,32 +93,32 @@
               :clickHandler="gotoComment"
               :onClickImage="onClickImage"
               :callback="onupdate")
-            
+
             comment-render(:text="comment.message" v-if="!comment.isAttachment(comment.message) && comment.type=='text'")
-          
+
           //- span(class="qcw-comment__time qcw-comment__time--children"
             v-if="!isParent"
             :class="{'qcw-comment__time--attachment': comment.isAttachment(comment.message)}") {{comment.time}}
 
           //- Time
-          span(class="qcw-comment__time" 
+          span(class="qcw-comment__time"
             :class="{'qcw-comment__time--me': isMe}"
             :style="messageTimeStyle") {{comment.time}}
-            
+
           //- State
           div(v-if="isMe")
             div(class="qcw-comment__state qcw-comment__state--sending" v-if="comment.isPending")
               icon(name="ic-load" class="ic-load__state" :fill="messageStatusIconStyle")
             div(class="qcw-comment__state" v-if="comment.isSent && !comment.isDelivered")
               icon(name="ic-check" class="ic-check__state" :fill="messageStatusIconStyle")
-            div(@click="resend(comment)" class="qcw-comment__state qcw-comment__state--failed" 
+            div(@click="resend(comment)" class="qcw-comment__state qcw-comment__state--failed"
               v-if="comment.isFailed" :style="messageFailedIconStyle") !!!
             div(class="qcw-comment__state qcw-comment__state--delivered" v-if="comment.isDelivered && !comment.isRead")
               icon(name="ic-double-check" class="ic-double-check__state" :fill="messageStatusIconStyle")
             div(class="qcw-comment__state qcw-comment__state--read" v-if="comment.isRead")
               icon(name="ic-double-check" class="ic-double-check__state")
 
-    div(class="failed-info" v-if="comment.isFailed" :class="{ 'failed--last': isLast }") Message failed to send. 
+    div(class="failed-info" v-if="comment.isFailed" :class="{ 'failed--last': isLast }") Message failed to send.
       span(@click="resend(comment)" class="" v-if="comment.isFailed") Resend
 
 </template>
@@ -210,6 +211,10 @@ export default {
     };
   },
   methods: {
+    onScroll(event) {
+      console.log('scroll');
+      console.log('event.target', event.target);
+    },
     gotoComment() {
       const element = document.getElementById(this.comment.payload.replied_comment_id);
       if (!element) return;
